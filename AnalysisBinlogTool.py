@@ -6,10 +6,11 @@
 # @File          : AnalysisBinlogTool.py
 # @Description   : 解析 MySQL binlog 文件，统计 CURD 相关信息
 # @Version       : 1.0.0
-# @Last Modified : 2024-07-12 11:19:40
+# @Last Modified : 2024-07-12 17:39:14
 # @License       : Apache-2.0 License
 # 
 # @ChangeLog:
+# - 2024-07-12 17:36  增加判断限制读取原始binlog文件
 # - 2024-07-11 14:36  创建文件
 #
 
@@ -38,6 +39,12 @@ def read_file(file_path):
             if not line:
                 break
             yield line.strip()
+
+def is_binlog_file(file):
+    with open(file, 'rb') as f:
+        bytes_data = f.read(4)
+        data = bytes_data.hex()
+        return data == 'fe62696e'
 
 def dbname_from_use_statement(line):
     matches = re.match(r"^USE\s+`(\w+)`", line, re.IGNORECASE)
@@ -93,6 +100,9 @@ def main():
     file_path = sys.argv[1]
     if not os.path.exists(file_path):
         print("File not exists.")
+        exit(1)
+    if is_binlog_file(file_path):
+        print("This is a binlog file, please use mysqlbinlog tool to export result first.")
         exit(1)
     # 设置读取行数限制
     line_limit = int(sys.argv[2]) if len(sys.argv) > 2 else 0
